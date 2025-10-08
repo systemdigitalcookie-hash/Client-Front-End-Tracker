@@ -1,56 +1,75 @@
-document.addEventListener('DOMContentLoaded', function () {
-    const projectData = {
-        projectId: "PROJ-101",
-        projectName: "New Website Redesign",
-        clientName: "Innovate Corp.",
-        status: "Client Review",
-        stages: ["Onboarding", "Discovery & Strategy", "Design", "Development", "Client Review", "Launch"],
-        timeline: [
-            { status: "Client Review", description: "Initial designs sent to client for feedback.", timestamp: "2025-10-08T10:00:00Z" },
-            { status: "Development", description: "Development phase completed.", timestamp: "2025-10-06T17:30:00Z" },
-            { status: "Design", description: "Wireframes and mockups approved.", timestamp: "2025-09-28T11:00:00Z" },
-            { status: "Discovery & Strategy", description: "Project kickoff meeting held.", timestamp: "2025-09-20T09:00:00Z" },
-            { status: "Onboarding", description: "Contract signed and project created.", timestamp: "2025-09-18T15:45:00Z" }
-        ]
-    };
+document.addEventListener('DOMContentLoaded', async function () {
+  
+  // --- FETCH LIVE DATA FROM OUR API ---
+  try {
+    // This calls the serverless function we created.
+    const response = await fetch('/api/get-latest-item');
+    const projectData = await response.json();
 
-    function renderProgressBar(stages, currentStatus) {
-        const bar = document.getElementById('progress-bar');
-        bar.innerHTML = '';
-        const currentStageIndex = stages.indexOf(currentStatus);
-        stages.forEach((stage, index) => {
-            const step = document.createElement('div');
-            step.classList.add('step');
-            if (index < currentStageIndex) {
-                step.classList.add('completed');
-            } else if (index === currentStageIndex) {
-                step.classList.add('active');
-            }
-            step.innerHTML = `<div class="step-icon">${index < currentStageIndex ? '✓' : ''}</div><div class="step-label">${stage}</div>`;
-            bar.appendChild(step);
-        });
-    }
-    
-    function renderProjectInfo(data) {
-        const infoSection = document.getElementById('project-info');
-        infoSection.innerHTML = `<h2>Project Information</h2><p><strong>Project ID:</strong> ${data.projectId}</p><p><strong>Project Name:</strong> ${data.projectName}</p><p><strong>Client:</strong> ${data.clientName}</p>`;
+    // If there's an error from our API, log it and stop.
+    if (projectData.error) {
+      console.error(projectData.error);
+      document.body.innerHTML = `<p>Error loading data: ${projectData.error}</p>`;
+      return;
     }
 
-    function renderTimeline(timeline, currentStatus) {
-        const list = document.getElementById('timeline-list');
-        const heading = document.getElementById('current-status-heading');
-        heading.textContent = `Delivered: ${currentStatus}`;
-        list.innerHTML = '';
-        timeline.forEach(item => {
-            const listItem = document.createElement('li');
-            listItem.classList.add('timeline-item');
-            const date = new Date(item.timestamp).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'});
-            listItem.innerHTML = `<span class="timeline-date">${date}</span><p class="timeline-description"><strong>[${item.status}]</strong> ${item.description}</p>`;
-            list.appendChild(listItem);
-        });
-    }
-
-    renderProgressBar(projectData.stages, projectData.status);
+    // All our render functions from before.
+    // They will now use the live data from Notion!
     renderProjectInfo(projectData);
-    renderTimeline(projectData.timeline, projectData.status);
+    // Note: The progress bar and timeline are for static display in this POC.
+    renderStaticProgressBar(projectData.status); 
+    renderStaticTimeline(projectData);
+
+  } catch (error) {
+    console.error('Failed to fetch project data:', error);
+    document.body.innerHTML = `<p>Error loading data. See console for details.</p>`;
+  }
 });
+
+// --- RENDER FUNCTIONS ---
+
+// Modified to handle the new `cleanData` structure
+function renderProjectInfo(data) {
+    const infoSection = document.getElementById('project-info');
+    infoSection.innerHTML = `
+        <h2>Project Information</h2>
+        <p><strong>Project Name:</strong> ${data.projectName}</p>
+        <p><strong>Client:</strong> ${data.clientName}</p>
+        <p><strong>Contact Email:</strong> ${data.email || 'N/A'}</p>
+        <p><strong>Timeline Start:</strong> ${data.timeline ? new Date(data.timeline).toLocaleDateString() : 'Not set'}</p>
+        <p><strong>Documents:</strong> ${data.documentCount} file(s) uploaded</p>
+    `;
+}
+
+// A simplified progress bar for this POC
+function renderStaticProgressBar(currentStatus) {
+    const stages = ["Onboarding", "In Progress", "Client Review", "Completed"];
+    const bar = document.getElementById('progress-bar');
+    bar.innerHTML = '';
+    const currentStageIndex = stages.indexOf(currentStatus);
+
+    stages.forEach((stage, index) => {
+        const step = document.createElement('div');
+        step.classList.add('step');
+        if (index < currentStageIndex) {
+            step.classList.add('completed');
+        } else if (index === currentStageIndex) {
+            step.classList.add('active');
+        }
+        step.innerHTML = `<div class="step-icon">${index < currentStageIndex ? '✓' : ''}</div><div class="step-label">${stage}</div>`;
+        bar.appendChild(step);
+    });
+}
+
+// A simplified timeline for this POC
+function renderStaticTimeline(data) {
+    const list = document.getElementById('timeline-list');
+    const heading = document.getElementById('current-status-heading');
+    heading.textContent = `Current Status: ${data.status}`;
+    list.innerHTML = `
+      <li class="timeline-item">
+        <span class="timeline-date">${new Date().toLocaleString()}</span>
+        <p class="timeline-description"><strong>[Data Loaded]</strong> Successfully fetched the latest item from Notion.</p>
+      </li>
+    `;
+}
