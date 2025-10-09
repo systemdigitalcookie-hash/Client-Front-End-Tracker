@@ -30,18 +30,41 @@ module.exports = async (req, res) => {
             return res.status(404).json({ error: 'Project not found.' });
         }
 
-        // ... (copy all the data fetching logic from your previous api/notion.js file) ...
-        // This includes fetching comments, cleaning data, etc.
-        // For brevity, I'll put a placeholder here, but you should copy the full logic.
-
         const projectItem = response.results[0];
-        // ... Fetch comments using projectItem.id ...
-        // ... Create the cleanData object ...
+        
+        // Get the database schema to get workflow stages
+        const dbResponse = await notion.databases.retrieve({ database_id: notionDatabaseId });
+        const statusProperty = Object.values(dbResponse.properties).find(prop => prop.name === 'Status');
+        const workflowStages = statusProperty.select.options.map(option => option.name);
 
-        // You would return the full payload here:
-        // res.status(200).json({ projectData, workflowStages, comments });
+        // Fetch comments
+        const commentsResponse = await notion.comments.list({ block_id: projectItem.id });
+        const comments = commentsResponse.results.map(comment => ({
+            text: comment.rich_text.map(t => t.plain_text).join(''),
+            timestamp: comment.created_time,
+        }));
 
-        res.status(200).json({ projectData: { projectName: `Found Project with ID: ${id}` } }); // Placeholder response
+        // Clean and structure the project data
+        const props = projectItem.properties;
+        const cleanData = {
+            projectId: projectItem.id,
+            projectName: props.Name.title[0]?.plain_text || 'Untitled',
+            description: props.Description?.rich_text[0]?.plain_text || '',
+            clientName: props.Client?.select?.name || 'N/A',
+            status: props.Status?.select?.name || 'Backlog',
+            timeline: props.Timeline?.date?.start || null,
+            email: props.Email?.email || '',
+            documents: props.Documents?.files?.map(file => ({ 
+                name: file.name, 
+                url: file.file.url 
+            })) || [],
+        };
+
+        res.status(200).json({ 
+            projectData: cleanData,
+            workflowStages: workflowStages,
+            comments: comments
+        });
 
 
     } catch (error) {
