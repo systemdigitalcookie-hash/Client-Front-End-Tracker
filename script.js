@@ -1,25 +1,26 @@
 document.addEventListener('DOMContentLoaded', async function () {
-  
+
+  // Get the path from the URL, e.g., "/t/12345-abcde"
+  const path = window.location.pathname.split('/');
+  // Get the last part of the path, which is our unique ID
+  const projectId = path[path.length - 1];
+
+  // If there's no ID, show an error.
+  if (!projectId || path[1] !== 't') {
+    document.body.innerHTML = '<h1>Project not found</h1><p>Please use a valid tracker link.</p>';
+    return;
+  }
+
   try {
-    const response = await fetch('/api/notion');
+    // Call our new dynamic API endpoint
+    const response = await fetch(`/api/project/${projectId}`);
 
-    // First, check if the HTTP response itself was successful.
-    if (!response.ok) {
-      // If not, read the error message from the body and throw an error.
-      const errorData = await response.json();
-      throw new Error(errorData.message || `Server responded with status: ${response.status}`);
-    }
-
-    // If we get here, the response was successful. Parse the data.
+    // ... (The rest of your response handling and rendering logic is the same) ...
     const { projectData, workflowStages, comments } = await response.json();
-
-    renderProjectInfo(projectData);
-    renderProgressBar(workflowStages, projectData.status); 
-    renderTimeline(projectData, comments);
+    // ... etc ...
 
   } catch (error) {
-    console.error('Failed to fetch project data:', error.message);
-    document.body.innerHTML = `<p>Error loading data: ${error.message}</p>`;
+    // ... (Your error handling) ...
   }
 });
 
