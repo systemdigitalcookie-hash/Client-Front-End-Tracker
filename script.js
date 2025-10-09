@@ -1,17 +1,6 @@
 async function initializeTracker() {
     try {
-             // Render all components
-        renderProgressBar(workflowStages, projectData.status);
-        renderProjectInfo(projectData);
-        renderTimeline(projectData, comments);
-        
-    } catch (error) {
-        console.error('Error:', error);
-        document.body.innerHTML = `<h1>Error</h1><p>Something went wrong: ${error.message}</p>`;
-    }
-}
-
-function renderProgressBar(stages, currentStatus) { the path from the URL, e.g., "/t/12345-abcde"
+        // Get the path from the URL, e.g., "/t/12345-abcde"
         const path = window.location.pathname.split('/');
         console.log('Current path:', path);
         
@@ -55,22 +44,22 @@ function renderProgressBar(stages, currentStatus) { the path from the URL, e.g.,
 
         console.log('API Response:', responseData);
         const { projectData, workflowStages, comments } = responseData;
-    
-    // Render all components with the fetched data
-    renderProgressBar(workflowStages, projectData.status);
-    renderTimeline(projectData, comments);
-    renderProjectInfo(projectData);
-
-  } catch (error) {
-    // ... (Your error handling) ...
-  }
-});
-
-// The render functions below do not need to be changed.
-// ... (rest of the file is the same) ...
+        
+        // Render all components
+        renderProgressBar(workflowStages, projectData.status);
+        renderProjectInfo(projectData);
+        renderTimeline(projectData, comments);
+        
+    } catch (error) {
+        console.error('Error:', error);
+        document.body.innerHTML = `<h1>Error</h1><p>Something went wrong: ${error.message}</p>`;
+    }
+}
 
 function renderProgressBar(stages, currentStatus) {
     const bar = document.getElementById('progress-bar');
+    if (!bar) return;
+    
     bar.innerHTML = '';
     const currentStageIndex = stages.indexOf(currentStatus);
 
@@ -90,6 +79,8 @@ function renderProgressBar(stages, currentStatus) {
 function renderTimeline(data, comments) {
     const list = document.getElementById('timeline-list');
     const heading = document.getElementById('current-status-heading');
+    if (!list || !heading) return;
+
     heading.textContent = `Current Status: ${data.status}`;
 
     if (comments && comments.length > 0) {
@@ -116,6 +107,8 @@ function renderTimeline(data, comments) {
 
 function renderProjectInfo(data) {
     const infoSection = document.getElementById('project-info');
+    if (!infoSection) return;
+
     let documentsHtml = '<p><strong>Documents:</strong> No files uploaded</p>';
     if (data.documents && data.documents.length > 0) {
         documentsHtml = `
@@ -141,3 +134,6 @@ function renderProjectInfo(data) {
         ${documentsHtml}
     `;
 }
+
+// Initialize the tracker when the DOM is ready
+document.addEventListener('DOMContentLoaded', initializeTracker);
