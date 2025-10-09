@@ -1,6 +1,5 @@
 const { Client } = require('@notionhq/client');
 
-// This code remains the same
 const notionApiKey = process.env.NOTION_API_KEY;
 const notionDatabaseId = process.env.NOTION_DATABASE_ID;
 
@@ -12,13 +11,16 @@ const notion = new Client({ auth: notionApiKey });
 
 module.exports = async (req, res) => {
   try {
-    // --- 1. RETRIEVE DATABASE PROPERTIES TO GET STATUS OPTIONS ---
     const databaseDetails = await notion.databases.retrieve({ database_id: notionDatabaseId });
-    // This finds the 'Status' property and maps its options to a simple array of names.
-    const workflowStages = databaseDetails.properties.Status.status.options.map(option => option.name);
-    // -------------------------------------------------------------
+    
+    // --- NEW DEBUGGING LINE ---
+    // This will print the entire structure of the object we get from Notion.
+    console.log('--- RAW DATABASE DETAILS FROM NOTION ---');
+    console.log(JSON.stringify(databaseDetails, null, 2));
+    // -------------------------
 
-    // --- 2. QUERY THE DATABASE FOR THE LATEST ITEM (Same as before) ---
+    const workflowStages = databaseDetails.properties.Status.status.options.map(option => option.name);
+
     const response = await notion.databases.query({
       database_id: notionDatabaseId,
       sorts: [
@@ -48,12 +50,10 @@ module.exports = async (req, res) => {
       documentCount: props.Documents.files.length,
     };
     
-    // --- 3. SEND BOTH THE PROJECT DATA AND THE WORKFLOW STAGES TO THE FRONTEND ---
     res.status(200).json({ 
       projectData: cleanData,
       workflowStages: workflowStages 
     });
-    // -------------------------------------------------------------------------
 
   } catch (error) {
     console.error("--- ERROR CAUGHT INSIDE HANDLER ---", error.message);
