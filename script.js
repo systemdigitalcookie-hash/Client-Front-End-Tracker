@@ -1,19 +1,16 @@
 document.addEventListener('DOMContentLoaded', async function () {
   
-  // --- FETCH LIVE DATA FROM OUR API ---
   try {
-    // This calls the serverless function we created.
-    const response = await fetch('/api/get-latest-item');
+    // This now calls our renamed serverless function.
+    const response = await fetch('/api/notion');
     const projectData = await response.json();
 
-    // If there's an error from our API, log it and stop.
     if (projectData.error) {
       console.error(projectData.error);
       document.body.innerHTML = `<p>Error loading data: ${projectData.error}</p>`;
       return;
     }
 
-    // These functions now use the live data from Notion!
     renderProjectInfo(projectData);
     renderStaticProgressBar(projectData.status); 
     renderStaticTimeline(projectData);
@@ -24,7 +21,7 @@ document.addEventListener('DOMContentLoaded', async function () {
   }
 });
 
-// --- RENDER FUNCTIONS ---
+// --- RENDER FUNCTIONS --- (These are all unchanged)
 
 function renderProjectInfo(data) {
     const infoSection = document.getElementById('project-info');
