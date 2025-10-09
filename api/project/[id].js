@@ -7,7 +7,11 @@ if (!notionApiKey || !notionDatabaseId) {
     throw new Error('Missing required environment variables NOTION_API_KEY or NOTION_DATABASE_ID');
 }
 
-const notion = new Client({ auth: notionApiKey });
+// Initialize Notion client with the new API version
+const notion = new Client({ 
+    auth: notionApiKey,
+    notionVersion: '2025-09-03'  // Using the latest API version
+});
 
 module.exports = async (req, res) => {
     const { id } = req.query;
@@ -17,32 +21,53 @@ module.exports = async (req, res) => {
     }
 
     try {
-        console.log('Searching for project with ID:', id);
+        console.log('Getting database information...');
         
-        console.log('Getting database schema...');
-        const database = await notion.databases.retrieve({ 
+        // First, get the database to find its data source
+        const dbResponse = await notion.databases.retrieve({ 
             database_id: notionDatabaseId 
         });
-        console.log('Database properties:', database.properties);
-
-        // Get the status options from the database schema
-        const workflowStages = ['Not Started', 'In Progress', 'Review', 'Complete'];
         
-        console.log('Querying database for project...');
-        // Search for the project page by its ID
-        const pages = await notion.databases.query({
-            database_id: notionDatabaseId,
-            filter: {
-                and: [
-                    {
-                        property: "Public ID",
-                        rich_text: {
-                            equals: id
-                        }
+        if (!dbResponse.data_sources || dbResponse.data_sources.length === 0) {
+            console.error('No data sources found for database');
+            return res.status(500).json({ error: 'Database configuration error: No data sources found' });
+        }
+
+        // Use the first data source
+        const dataSourceId = dbResponse.data_sources[0].id;
+        console.log('Using data source:', dataSourceId);
+
+        // Query the data source for the project
+        console.log('Searching for project with ID:', id);
+        const pages = await notion.request({
+            path: `data_sources/${dataSourceId}/query`,
+            method: 'POST',
+            body: {
+                filter: {
+                    property: "Public ID",
+                    rich_text: {
+                        equals: id
                     }
-                ]
+                }
             }
         });
+        
+        // Get the data source schema
+        console.log('Getting data source schema...');
+        const dataSource = await notion.request({
+            path: `data_sources/${dataSourceId}`,
+            method: 'GET'
+        });
+
+        // Extract workflow stages from the Status property
+        let workflowStages = ['Not Started', 'In Progress', 'Review', 'Complete'];
+        if (dataSource.properties.Status && 
+            (dataSource.properties.Status.type === 'status' || dataSource.properties.Status.type === 'select')) {
+            const options = dataSource.properties.Status.type === 'status' 
+                ? dataSource.properties.Status.status.options 
+                : dataSource.properties.Status.select.options;
+            workflowStages = options.map(opt => opt.name);
+        }
 
         if (!pages.results.length) {
             return res.status(404).json({ error: 'Project not found' });
@@ -56,12 +81,13 @@ module.exports = async (req, res) => {
         const page = pages.results[0];
         console.log('Found project:', page.id);
 
-        // Get the full page details
-        console.log('Fetching page details...');
-        const pageDetails = await notion.pages.retrieve({ 
-            page_id: page.id 
+        // Get the full data source item details
+        console.log('Fetching item details...');
+        const pageDetails = await notion.request({
+            path: `data_sources/${dataSourceId}/items/${page.id}`,
+            method: 'GET'
         });
-        console.log('Page details retrieved');
+        console.log('Item details retrieved');
 
         // Get comments/updates from page blocks
         console.log('Fetching page blocks...');
@@ -101,7 +127,10 @@ module.exports = async (req, res) => {
             status: props.Status?.status?.name || props.Status?.select?.name || 'Not Started',
             timeline: props.Timeline?.date?.start || null,
             email: props.Email?.email || '',
-            documents: []
+            documents: props.Files?.files?.map(file => ({
+                name: file.name,
+                url: file.file?.url || file.external?.url || ''
+            })) || []
         };
 
         // Return all the data
