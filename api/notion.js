@@ -7,22 +7,31 @@ if (!notionApiKey || !notionDatabaseId) {
   throw new Error("FATAL: Missing NOTION_API_KEY or NOTION_DATABASE_ID in Vercel environment variables.");
 }
 
-const notion = new Client({ auth: notionApiKey });
+// Initialize the client with the new API version specified in the guide
+const notion = new Client({ 
+  auth: notionApiKey,
+  notionVersion: '2025-09-03' 
+});
 
 module.exports = async (req, res) => {
   try {
-    const databaseDetails = await notion.databases.retrieve({ database_id: notionDatabaseId });
+    // --- STEP 1: Get the Database to find its Data Source ID ---
+    const dbResponse = await notion.databases.retrieve({ database_id: notionDatabaseId });
+    // For this POC, we assume the database has at least one data source and we'll use the first one.
+    if (!dbResponse.data_sources || dbResponse.data_sources.length === 0) {
+      throw new Error("No data sources found for this database.");
+    }
+    const dataSourceId = dbResponse.data_sources[0].id;
+
+    // --- STEP 2: Retrieve the Data Source Schema to get Status options ---
+    // This is the new, correct way to get the properties.
+    const dataSourceDetails = await notion.dataSources.retrieve({ data_source_id: dataSourceId });
+    const workflowStages = dataSourceDetails.properties.Status.status.options.map(option => option.name);
     
-    // --- NEW DEBUGGING LINE ---
-    // This will print the entire structure of the object we get from Notion.
-    console.log('--- RAW DATABASE DETAILS FROM NOTION ---');
-    console.log(JSON.stringify(databaseDetails, null, 2));
-    // -------------------------
-
-    const workflowStages = databaseDetails.properties.Status.status.options.map(option => option.name);
-
-    const response = await notion.databases.query({
-      database_id: notionDatabaseId,
+    // --- STEP 3: Query the Data Source for the latest item ---
+    // Note: We now query the data_source_id, not the database_id.
+    const response = await notion.dataSources.query({
+      data_source_id: dataSourceId,
       sorts: [
         {
           property: 'Created time',
@@ -50,13 +59,14 @@ module.exports = async (req, res) => {
       documentCount: props.Documents.files.length,
     };
     
+    // Send both the project data and the dynamically fetched workflow stages
     res.status(200).json({ 
       projectData: cleanData,
       workflowStages: workflowStages 
     });
 
   } catch (error) {
-    console.error("--- ERROR CAUGHT INSIDE HANDLER ---", error.message);
+    console.error("--- ERROR CAUGHT INSIDE HANDLER ---", error);
     res.status(500).json({ 
       message: "An error occurred while fetching from Notion.",
       error: error.message 
