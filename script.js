@@ -1,12 +1,11 @@
 document.addEventListener('DOMContentLoaded', async function () {
-
+  
   try {
     const response = await fetch('/api/notion');
-    // Use destructuring and check if projectData exists
-    const { projectData, workflowStages } = await response.json();
+    // Destructure the new 'comments' array from the response
+    const { projectData, comments } = await response.json();
 
     if (!projectData) {
-      // Check for a more specific error message from the response if available
       const errorPayload = await response.json();
       console.error("Error loading data:", errorPayload.error || 'No project data returned');
       document.body.innerHTML = `<p>Error loading data: ${errorPayload.error || 'No project data returned'}</p>`;
@@ -14,14 +13,61 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
 
     renderProjectInfo(projectData);
-    renderProgressBar(workflowStages, projectData.status); 
-    renderStaticTimeline(projectData);
+    // This part requires a separate API call to get all stages, which we will skip for now.
+    // We will build a simplified progress bar.
+    renderSimpleProgressBar(projectData.status); 
+    renderTimeline(projectData, comments); // Pass the comments to the timeline function
 
   } catch (error) {
     console.error('Failed to fetch project data:', error);
     document.body.innerHTML = `<p>Error loading data. See console for details.</p>`;
   }
 });
+
+// A simplified progress bar as the dynamic stages requires another API call
+function renderSimpleProgressBar(currentStatus) {
+    const bar = document.getElementById('progress-bar');
+    // For simplicity, we'll just show the current status as a single active step
+    bar.innerHTML = `
+        <div class="step active">
+            <div class="step-icon"></div>
+            <div class="step-label">${currentStatus}</div>
+        </div>
+    `;
+}
+
+// Rewritten to display the list of comments
+function renderTimeline(data, comments) {
+    const list = document.getElementById('timeline-list');
+    const heading = document.getElementById('current-status-heading');
+    heading.textContent = `Current Status: ${data.status}`;
+
+    if (comments && comments.length > 0) {
+        list.innerHTML = comments.map(comment => {
+            const date = new Date(comment.timestamp).toLocaleString('en-US', { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric', 
+                hour: '2-digit', 
+                minute: '2-digit'
+            });
+            return `
+                <li class="timeline-item">
+                    <span class="timeline-date">${date}</span>
+                    <p class="timeline-description">${comment.text}</p>
+                </li>
+            `;
+        }).join('');
+    } else {
+        list.innerHTML = `
+            <li class="timeline-item">
+                <p class="timeline-description">No progress updates found.</p>
+            </li>
+        `;
+    }
+}
+
+// --- Other Render Functions (unchanged) ---
 
 function renderProjectInfo(data) {
     const infoSection = document.getElementById('project-info');
@@ -49,35 +95,5 @@ function renderProjectInfo(data) {
         <p><strong>Contact Email:</strong> ${data.email || 'N/A'}</p>
         <p><strong>Timeline Start:</strong> ${data.timeline ? new Date(data.timeline).toLocaleDateString() : 'Not set'}</p>
         ${documentsHtml}
-    `;
-}
-
-function renderProgressBar(stages, currentStatus) {
-    const bar = document.getElementById('progress-bar');
-    bar.innerHTML = '';
-    const currentStageIndex = stages.indexOf(currentStatus);
-
-    stages.forEach((stage, index) => {
-        const step = document.createElement('div');
-        step.classList.add('step');
-        if (index < currentStageIndex) {
-            step.classList.add('completed');
-        } else if (index === currentStageIndex) {
-            step.classList.add('active');
-        }
-        step.innerHTML = `<div class="step-icon">${index < currentStageIndex ? '✓' : ''}</div><div class="step-label">${stage}</div>`;
-        bar.appendChild(step);
-    });
-}
-
-function renderStaticTimeline(data) {
-    const list = document.getElementById('timeline-list');
-    const heading = document.getElementById('current-status-heading');
-    heading.textContent = `Current Status: ${data.status}`;
-    list.innerHTML = `
-      <li class="timeline-item">
-        <span class="timeline-date">${new Date().toLocaleString()}</span>
-        <p class="timeline-description"><strong>[Data Loaded]</strong> Successfully fetched the latest item from Notion.</p>
-      </li>
     `;
 }
