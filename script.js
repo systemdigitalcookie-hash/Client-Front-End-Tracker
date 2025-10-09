@@ -50,8 +50,7 @@ function renderProgressBar(stages, currentStatus) {
 function renderProjectInfo(data) {
     const infoSection = document.getElementById('project-info');
 
-    // --- Build the HTML for the documents list ---
-    let documentsHtml = '<p><strong>Documents:</strong> No files uploaded</p>'; // Default text
+    let documentsHtml = '<p><strong>Documents:</strong> No files uploaded</p>';
     if (data.documents && data.documents.length > 0) {
         documentsHtml = `
             <p><strong>Documents:</strong></p>
@@ -66,6 +65,16 @@ function renderProjectInfo(data) {
             </ul>
         `;
     }
+
+    infoSection.innerHTML = `
+        <h2>Project Information</h2>
+        <p><strong>Project Name:</strong> ${data.projectName}</p>
+        <p><strong>Client:</strong> ${data.clientName}</p>
+        <p><strong>Contact Email:</strong> ${data.email || 'N/A'}</p>
+        <p><strong>Timeline Start:</strong> ${data.timeline ? new Date(data.timeline).toLocaleDateString() : 'Not set'}</p>
+        ${documentsHtml}
+    `;
+}
     // ---------------------------------------------
 
     infoSection.innerHTML = `
