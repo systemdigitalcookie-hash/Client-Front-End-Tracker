@@ -1,18 +1,25 @@
 {
-  "rewrites": [
+  "version": 2,
+  "routes": [
     {
-      "source": "/t/:id",
-      "destination": "/index.html"
+      "src": "^/t/[^/]+$",
+      "dest": "/index.html"
     },
     {
-      "source": "/api/project/:id",
-      "destination": "/api/project/[id].js"
+      "src": "^/api/project/([^/]+)$",
+      "dest": "/api/project/[id].js?id=$1"
+    },
+    {
+      "src": "^/script\\.js$",
+      "dest": "/script.js"
+    },
+    {
+      "src": "^/style\\.css$",
+      "dest": "/style.css"
+    },
+    {
+      "src": "^/$",
+      "dest": "/index.html"
     }
-  ],
-  "functions": {
-    "api/project/[id].js": {
-      "memory": 1024,
-      "maxDuration": 10
-    }
-  }
+  ]
 }
