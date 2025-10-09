@@ -169,3 +169,26 @@ header h1 {
     font-size: 15px;
     margin: 0;
 }
+
+/* --- Document List Styles --- */
+.documents-list {
+    list-style: none;
+    padding: 0;
+    margin: 5px 0 0 0;
+}
+
+.documents-list li {
+    margin-bottom: 8px;
+}
+
+.documents-list a {
+    text-decoration: none;
+    color: #007bff;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.documents-list a:hover {
+    color: #0056b3;
+    text-decoration: underline;
+}
