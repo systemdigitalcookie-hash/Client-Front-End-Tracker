@@ -1,21 +1,11 @@
 document.addEventListener('DOMContentLoaded', async function () {
-
-  // --- DEFINE YOUR WORKFLOW ---
-  // List all your Notion status options here in the exact order you want them to appear.
-  const workflowStages = [
-    "Onboarding",
-    "Discovery & Strategy",
-    "Design",
-    "Development",
-    "Client Review",
-    "Launch",
-    "Completed"
-  ];
-  // -----------------------------
+  
+  // The hardcoded workflowStages array has been removed from here.
   
   try {
     const response = await fetch('/api/notion');
-    const projectData = await response.json();
+    // We now expect an object with two keys: projectData and workflowStages
+    const { projectData, workflowStages } = await response.json();
 
     if (projectData.error) {
       console.error(projectData.error);
@@ -24,7 +14,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
 
     renderProjectInfo(projectData);
-    // We now pass the full workflow and the current status to the render function.
+    // We pass the dynamically fetched workflowStages to the progress bar.
     renderProgressBar(workflowStages, projectData.status); 
     renderStaticTimeline(projectData);
 
@@ -35,7 +25,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 });
 
 
-// This function is now fully dynamic.
+// This function doesn't need to change, as it already accepts the stages as a parameter.
 function renderProgressBar(stages, currentStatus) {
     const bar = document.getElementById('progress-bar');
     bar.innerHTML = '';
@@ -44,10 +34,8 @@ function renderProgressBar(stages, currentStatus) {
     stages.forEach((stage, index) => {
         const step = document.createElement('div');
         step.classList.add('step');
-        // If the step's index is before the current one, it's 'completed'.
         if (index < currentStageIndex) {
             step.classList.add('completed');
-        // If it's the current step, it's 'active'.
         } else if (index === currentStageIndex) {
             step.classList.add('active');
         }

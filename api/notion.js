@@ -1,49 +1,34 @@
-// This function calls the Notion API directly, without using the Notion library.
+const { Client } = require('@notionhq/client');
+
+// This code remains the same
+const notionApiKey = process.env.NOTION_API_KEY;
+const notionDatabaseId = process.env.NOTION_DATABASE_ID;
+
+if (!notionApiKey || !notionDatabaseId) {
+  throw new Error("FATAL: Missing NOTION_API_KEY or NOTION_DATABASE_ID in Vercel environment variables.");
+}
+
+const notion = new Client({ auth: notionApiKey });
+
 module.exports = async (req, res) => {
-  const notionApiKey = process.env.NOTION_API_KEY;
-  const notionDatabaseId = process.env.NOTION_DATABASE_ID;
-
-  // Check for the environment variables one last time.
-  if (!notionApiKey || !notionDatabaseId) {
-    return res.status(500).json({ error: "Notion API Key or Database ID is missing from Vercel environment variables." });
-  }
-
-  // The specific URL for querying a Notion database.
-  const url = `https://api.notion.com/v1/databases/${notionDatabaseId}/query`;
-
-  const headers = {
-    'Authorization': `Bearer ${notionApiKey}`,
-    'Content-Type': 'application/json',
-    'Notion-Version': '2022-06-28', // Required by the Notion API
-  };
-
-  const body = JSON.stringify({
-    sorts: [
-      {
-        property: 'Created time',
-        direction: 'descending',
-      },
-    ],
-    page_size: 1,
-  });
-
   try {
-    const apiResponse = await fetch(url, {
-      method: 'POST',
-      headers: headers,
-      body: body,
-    });
-    
-    // If the response is not OK (e.g., 401 Unauthorized, 404 Not Found),
-    // we get the error text and send it back to the browser.
-    if (!apiResponse.ok) {
-      const errorText = await apiResponse.text();
-      console.error("Error from Notion API:", errorText);
-      return res.status(apiResponse.status).json({ error: `Notion API Error: ${errorText}` });
-    }
+    // --- 1. RETRIEVE DATABASE PROPERTIES TO GET STATUS OPTIONS ---
+    const databaseDetails = await notion.databases.retrieve({ database_id: notionDatabaseId });
+    // This finds the 'Status' property and maps its options to a simple array of names.
+    const workflowStages = databaseDetails.properties.Status.status.options.map(option => option.name);
+    // -------------------------------------------------------------
 
-    // If the response is OK, we parse the JSON.
-    const response = await apiResponse.json();
+    // --- 2. QUERY THE DATABASE FOR THE LATEST ITEM (Same as before) ---
+    const response = await notion.databases.query({
+      database_id: notionDatabaseId,
+      sorts: [
+        {
+          property: 'Created time',
+          direction: 'descending',
+        },
+      ],
+      page_size: 1,
+    });
     
     if (response.results.length === 0) {
       return res.status(404).json({ error: 'No items found in the database.' });
@@ -63,12 +48,17 @@ module.exports = async (req, res) => {
       documentCount: props.Documents.files.length,
     };
     
-    res.status(200).json(cleanData);
+    // --- 3. SEND BOTH THE PROJECT DATA AND THE WORKFLOW STAGES TO THE FRONTEND ---
+    res.status(200).json({ 
+      projectData: cleanData,
+      workflowStages: workflowStages 
+    });
+    // -------------------------------------------------------------------------
 
   } catch (error) {
-    console.error("--- FATAL ERROR IN API FUNCTION ---", error.message);
+    console.error("--- ERROR CAUGHT INSIDE HANDLER ---", error.message);
     res.status(500).json({ 
-      message: "A fatal error occurred in the API function.",
+      message: "An error occurred while fetching from Notion.",
       error: error.message 
     });
   }
