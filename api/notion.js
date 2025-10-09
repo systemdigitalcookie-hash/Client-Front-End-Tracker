@@ -1,29 +1,49 @@
-const { Client } = require('@notionhq/client');
-
-// --- ROBUST ENVIRONMENT VARIABLE CHECKS ---
-const notionApiKey = process.env.NOTION_API_KEY;
-const notionDatabaseId = process.env.NOTION_DATABASE_ID;
-
-// If either key is missing, stop everything and throw a clear error.
-if (!notionApiKey || !notionDatabaseId) {
-  throw new Error("FATAL: Missing NOTION_API_KEY or NOTION_DATABASE_ID in Vercel environment variables. Please check project settings.");
-}
-
-// Initialize the client ONLY if the keys exist.
-const notion = new Client({ auth: notionApiKey });
-
+// This function calls the Notion API directly, without using the Notion library.
 module.exports = async (req, res) => {
+  const notionApiKey = process.env.NOTION_API_KEY;
+  const notionDatabaseId = process.env.NOTION_DATABASE_ID;
+
+  // Check for the environment variables one last time.
+  if (!notionApiKey || !notionDatabaseId) {
+    return res.status(500).json({ error: "Notion API Key or Database ID is missing from Vercel environment variables." });
+  }
+
+  // The specific URL for querying a Notion database.
+  const url = `https://api.notion.com/v1/databases/${notionDatabaseId}/query`;
+
+  const headers = {
+    'Authorization': `Bearer ${notionApiKey}`,
+    'Content-Type': 'application/json',
+    'Notion-Version': '2022-06-28', // Required by the Notion API
+  };
+
+  const body = JSON.stringify({
+    sorts: [
+      {
+        property: 'Created time',
+        direction: 'descending',
+      },
+    ],
+    page_size: 1,
+  });
+
   try {
-    const response = await notion.databases.query({
-      database_id: notionDatabaseId,
-      sorts: [
-        {
-          property: 'Created time',
-          direction: 'descending',
-        },
-      ],
-      page_size: 1,
+    const apiResponse = await fetch(url, {
+      method: 'POST',
+      headers: headers,
+      body: body,
     });
+    
+    // If the response is not OK (e.g., 401 Unauthorized, 404 Not Found),
+    // we get the error text and send it back to the browser.
+    if (!apiResponse.ok) {
+      const errorText = await apiResponse.text();
+      console.error("Error from Notion API:", errorText);
+      return res.status(apiResponse.status).json({ error: `Notion API Error: ${errorText}` });
+    }
+
+    // If the response is OK, we parse the JSON.
+    const response = await apiResponse.json();
     
     if (response.results.length === 0) {
       return res.status(404).json({ error: 'No items found in the database.' });
@@ -46,9 +66,9 @@ module.exports = async (req, res) => {
     res.status(200).json(cleanData);
 
   } catch (error) {
-    console.error("--- ERROR CAUGHT INSIDE HANDLER ---", error.message);
+    console.error("--- FATAL ERROR IN API FUNCTION ---", error.message);
     res.status(500).json({ 
-      message: "An error occurred while fetching from Notion.",
+      message: "A fatal error occurred in the API function.",
       error: error.message 
     });
   }
