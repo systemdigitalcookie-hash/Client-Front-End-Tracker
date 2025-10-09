@@ -2,23 +2,29 @@ document.addEventListener('DOMContentLoaded', async function () {
   
   try {
     const response = await fetch('/api/notion');
-    const { projectData, workflowStages, comments } = await response.json();
 
-    if (!projectData) {
-      const errorPayload = await response.json();
-      document.body.innerHTML = `<p>Error loading data: ${errorPayload.error || 'No project data returned'}</p>`;
-      return;
+    // First, check if the HTTP response itself was successful.
+    if (!response.ok) {
+      // If not, read the error message from the body and throw an error.
+      const errorData = await response.json();
+      throw new Error(errorData.message || `Server responded with status: ${response.status}`);
     }
+
+    // If we get here, the response was successful. Parse the data.
+    const { projectData, workflowStages, comments } = await response.json();
 
     renderProjectInfo(projectData);
     renderProgressBar(workflowStages, projectData.status); 
     renderTimeline(projectData, comments);
 
   } catch (error) {
-    console.error('Failed to fetch project data:', error);
-    document.body.innerHTML = `<p>Error loading data. See console for details.</p>`;
+    console.error('Failed to fetch project data:', error.message);
+    document.body.innerHTML = `<p>Error loading data: ${error.message}</p>`;
   }
 });
+
+// The render functions below do not need to be changed.
+// ... (rest of the file is the same) ...
 
 function renderProgressBar(stages, currentStatus) {
     const bar = document.getElementById('progress-bar');
