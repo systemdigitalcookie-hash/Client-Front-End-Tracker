@@ -12,15 +12,20 @@ document.addEventListener('DOMContentLoaded', async function () {
   }
 
   try {
+    console.log('Fetching project data for ID:', projectId);
     // Call our new dynamic API endpoint
     const response = await fetch(`/api/project/${projectId}`);
+    console.log('Response status:', response.status);
     
     if (!response.ok) {
       const error = await response.json();
+      console.error('API Error:', error);
       throw new Error(error.message || 'Failed to fetch project data');
     }
 
-    const { projectData, workflowStages, comments } = await response.json();
+    const responseData = await response.json();
+    console.log('API Response:', responseData);
+    const { projectData, workflowStages, comments } = responseData;
     
     // Render all components with the fetched data
     renderProgressBar(workflowStages, projectData.status);

@@ -34,8 +34,21 @@ module.exports = async (req, res) => {
         
         // Get the database schema to get workflow stages
         const dbResponse = await notion.databases.retrieve({ database_id: notionDatabaseId });
-        const statusProperty = Object.values(dbResponse.properties).find(prop => prop.name === 'Status');
-        const workflowStages = statusProperty.select.options.map(option => option.name);
+        console.log('Database response:', dbResponse);
+        
+        // Find the Status property and extract workflow stages
+        const statusProperty = Object.values(dbResponse.properties).find(prop => 
+            prop.type === 'status' || prop.type === 'select'
+        );
+        
+        let workflowStages = ['Not Started'];
+        if (statusProperty) {
+            const options = statusProperty.type === 'status' 
+                ? statusProperty.status.options 
+                : statusProperty.select.options;
+            workflowStages = options.map(option => option.name);
+        }
+        console.log('Workflow stages:', workflowStages);
 
         // Fetch comments
         const commentsResponse = await notion.comments.list({ block_id: projectItem.id });
@@ -46,19 +59,33 @@ module.exports = async (req, res) => {
 
         // Clean and structure the project data
         const props = projectItem.properties;
+        console.log('Notion properties:', props);
+
+        const getTextContent = (prop) => {
+            if (!prop) return '';
+            if (prop.title) return prop.title[0]?.plain_text || '';
+            if (prop.rich_text) return prop.rich_text[0]?.plain_text || '';
+            return '';
+        };
+
         const cleanData = {
             projectId: projectItem.id,
-            projectName: props.Name.title[0]?.plain_text || 'Untitled',
-            description: props.Description?.rich_text[0]?.plain_text || '',
-            clientName: props.Client?.select?.name || 'N/A',
-            status: props.Status?.select?.name || 'Backlog',
-            timeline: props.Timeline?.date?.start || null,
-            email: props.Email?.email || '',
-            documents: props.Documents?.files?.map(file => ({ 
+            projectName: getTextContent(props.Name || props.name || props.Title || props.title) || 'Untitled',
+            description: getTextContent(props.Description || props.description),
+            clientName: (props.Client || props.client)?.select?.name || 
+                       (props.Client || props.client)?.rich_text?.[0]?.plain_text || 'N/A',
+            status: (props.Status || props.status)?.status?.name || 
+                   (props.Status || props.status)?.select?.name || 'Not Started',
+            timeline: (props.Timeline || props.timeline || props.Date || props.date)?.date?.start || null,
+            email: (props.Email || props.email)?.email || 
+                  getTextContent(props.Email || props.email) || '',
+            documents: (props.Documents || props.documents || props.Files || props.files)?.files?.map(file => ({ 
                 name: file.name, 
-                url: file.file.url 
+                url: file.file?.url || file.external?.url || ''
             })) || [],
         };
+        
+        console.log('Cleaned data:', cleanData);
 
         res.status(200).json({ 
             projectData: cleanData,
