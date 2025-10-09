@@ -2,11 +2,14 @@ document.addEventListener('DOMContentLoaded', async function () {
 
   try {
     const response = await fetch('/api/notion');
+    // Use destructuring and check if projectData exists
     const { projectData, workflowStages } = await response.json();
 
     if (!projectData) {
-      console.error("Error loading data:", data.error);
-      document.body.innerHTML = `<p>Error loading data: ${data.error}</p>`;
+      // Check for a more specific error message from the response if available
+      const errorPayload = await response.json();
+      console.error("Error loading data:", errorPayload.error || 'No project data returned');
+      document.body.innerHTML = `<p>Error loading data: ${errorPayload.error || 'No project data returned'}</p>`;
       return;
     }
 
