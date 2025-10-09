@@ -13,10 +13,8 @@ document.addEventListener('DOMContentLoaded', async function () {
       return;
     }
 
-    // All our render functions from before.
-    // They will now use the live data from Notion!
+    // These functions now use the live data from Notion!
     renderProjectInfo(projectData);
-    // Note: The progress bar and timeline are for static display in this POC.
     renderStaticProgressBar(projectData.status); 
     renderStaticTimeline(projectData);
 
@@ -28,7 +26,6 @@ document.addEventListener('DOMContentLoaded', async function () {
 
 // --- RENDER FUNCTIONS ---
 
-// Modified to handle the new `cleanData` structure
 function renderProjectInfo(data) {
     const infoSection = document.getElementById('project-info');
     infoSection.innerHTML = `
@@ -41,7 +38,6 @@ function renderProjectInfo(data) {
     `;
 }
 
-// A simplified progress bar for this POC
 function renderStaticProgressBar(currentStatus) {
     const stages = ["Onboarding", "In Progress", "Client Review", "Completed"];
     const bar = document.getElementById('progress-bar');
@@ -61,7 +57,6 @@ function renderStaticProgressBar(currentStatus) {
     });
 }
 
-// A simplified timeline for this POC
 function renderStaticTimeline(data) {
     const list = document.getElementById('timeline-list');
     const heading = document.getElementById('current-status-heading');
