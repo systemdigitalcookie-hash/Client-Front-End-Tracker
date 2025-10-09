@@ -1,23 +1,33 @@
-const { Client } = require('@notionhq/client');
-const { v4: uuidv4 } = require('uuid'); // Import the uuid library
+const { Client } = require('uuid');
+const { v4: uuidv4 } = require('uuid');
 
 const notionApiKey = process.env.NOTION_API_KEY;
 const notionDatabaseId = process.env.NOTION_DATABASE_ID;
 
-// Your website's main URL. You can get this from your Vercel project dashboard.
+// Your website's main URL
 const SITE_URL = "https://client-front-end-tracker.vercel.app";
 
 if (!notionApiKey || !notionDatabaseId) {
   throw new Error("FATAL: Missing Notion API Key or Database ID.");
 }
 
-const notion = new Client({ auth: notionApiKey });
+const notion = new Client({ 
+  auth: notionApiKey,
+  notionVersion: '2025-09-03' 
+});
 
 module.exports = async (req, res) => {
     try {
-        // 1. Find all pages in the database where "Public ID" is empty.
-        const pagesToUpdate = await notion.databases.query({
-            database_id: notionDatabaseId,
+        // Step 1: Get the Database to find its Data Source ID
+        const dbResponse = await notion.databases.retrieve({ database_id: notionDatabaseId });
+        if (!dbResponse.data_sources || dbResponse.data_sources.length === 0) {
+            throw new Error("No data sources found for this database.");
+        }
+        const dataSourceId = dbResponse.data_sources[0].id;
+
+        // Step 2: Query the Data Source to find pages where "Public ID" is empty.
+        const pagesToUpdate = await notion.dataSources.query({
+            data_source_id: dataSourceId,
             filter: {
                 property: "Public ID",
                 rich_text: {
@@ -30,10 +40,10 @@ module.exports = async (req, res) => {
             return res.status(200).json({ message: "No new projects to update." });
         }
 
-        // 2. Loop through each page and update it.
+        // Step 3: Loop through each page and update it.
         const updatePromises = pagesToUpdate.results.map(page => {
-            const uniqueId = uuidv4(); // Generate a unique ID
-            const publicUrl = `${SITE_URL}/t/${uniqueId}`; // Create the full URL
+            const uniqueId = uuidv4();
+            const publicUrl = `${SITE_URL}/t/${uniqueId}`;
 
             return notion.pages.update({
                 page_id: page.id,
@@ -41,14 +51,13 @@ module.exports = async (req, res) => {
                     "Public ID": {
                         rich_text: [{ type: "text", text: { content: uniqueId } }]
                     },
-                    "Url": { // Assumes you have a "Url" property of type "URL"
+                    "Url": {
                         url: publicUrl
                     }
                 }
             });
         });
 
-        // 3. Wait for all updates to complete.
         await Promise.all(updatePromises);
 
         res.status(200).json({ 
