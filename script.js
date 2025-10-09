@@ -1,48 +1,60 @@
 async function initializeTracker() {
-  try {
-    // Get the path from the URL, e.g., "/t/12345-abcde"
-    const path = window.location.pathname.split('/');
-    console.log('Current path:', path);
-    
-    // Get the last part of the path, which is our unique ID
-    const projectId = path[path.length - 1];
-
-  // If there's no ID, show an error.
-  if (!projectId || path[1] !== 't') {
-    document.body.innerHTML = '<h1>Project not found</h1><p>Please use a valid tracker link.</p>';
-    return;
-  }
-
-  try {
-    console.log('Fetching project data for ID:', projectId);
-    // Call our new dynamic API endpoint
-    const response = await fetch(`/api/project/${projectId}`, {
-      headers: {
-        'Accept': 'application/json'
-      }
-    });
-    
-    // Log the raw response for debugging
-    console.log('Response status:', response.status);
-    const responseText = await response.text();
-    console.log('Raw response:', responseText);
-    
-    // Try to parse as JSON
-    let responseData;
     try {
-      responseData = JSON.parse(responseText);
-    } catch (e) {
-      console.error('Failed to parse JSON:', e);
-      throw new Error('Invalid response from server');
+             // Render all components
+        renderProgressBar(workflowStages, projectData.status);
+        renderProjectInfo(projectData);
+        renderTimeline(projectData, comments);
+        
+    } catch (error) {
+        console.error('Error:', error);
+        document.body.innerHTML = `<h1>Error</h1><p>Something went wrong: ${error.message}</p>`;
     }
-    
-    if (!response.ok) {
-      console.error('API Error:', responseData);
-      throw new Error(responseData.message || 'Failed to fetch project data');
-    }
+}
 
-    console.log('API Response:', responseData);
-    const { projectData, workflowStages, comments } = responseData;
+function renderProgressBar(stages, currentStatus) { the path from the URL, e.g., "/t/12345-abcde"
+        const path = window.location.pathname.split('/');
+        console.log('Current path:', path);
+        
+        // Get the last part of the path, which is our unique ID
+        const projectId = path[path.length - 1];
+        console.log('Project ID:', projectId);
+
+        // If there's no ID or wrong path, show an error
+        if (!projectId || path[1] !== 't') {
+            document.body.innerHTML = '<h1>Project not found</h1><p>Please use a valid tracker link.</p>';
+            return;
+        }
+
+        console.log('Fetching project data for ID:', projectId);
+        // Call our dynamic API endpoint
+        const response = await fetch(`/api/project/${projectId}`, {
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+        
+        console.log('Response status:', response.status);
+        const responseText = await response.text();
+        console.log('Raw response:', responseText);
+        
+        // Try to parse as JSON
+        let responseData;
+        try {
+            responseData = JSON.parse(responseText);
+        } catch (e) {
+            console.error('Failed to parse JSON:', e);
+            document.body.innerHTML = '<h1>Error</h1><p>Failed to load project data. Please try again later.</p>';
+            return;
+        }
+        
+        if (!response.ok) {
+            console.error('API Error:', responseData);
+            document.body.innerHTML = `<h1>Error</h1><p>${responseData.message || 'Failed to fetch project data'}</p>`;
+            return;
+        }
+
+        console.log('API Response:', responseData);
+        const { projectData, workflowStages, comments } = responseData;
     
     // Render all components with the fetched data
     renderProgressBar(workflowStages, projectData.status);
