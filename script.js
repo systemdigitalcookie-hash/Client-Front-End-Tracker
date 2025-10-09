@@ -16,12 +16,14 @@ async function initializeTracker() {
 
         console.log('Fetching project data for ID:', projectId);
         // Call our dynamic API endpoint
-        const cleanProjectId = projectId.replace(/[^a-zA-Z0-9-]/g, ''); // Remove any invalid characters
-        const response = await fetch(`/api/project/${cleanProjectId}`, {
+        const cleanProjectId = encodeURIComponent(projectId.trim()); // Clean and encode the ID
+        const apiUrl = new URL('/api/project/' + cleanProjectId, window.location.origin);
+        console.log('Making request to:', apiUrl.toString());
+        
+        const response = await fetch(apiUrl, {
             method: 'GET',
             headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
+                'Accept': 'application/json'
             }
         });
         

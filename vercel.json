@@ -1,13 +1,19 @@
 {
   "version": 2,
+  "functions": {
+    "api/**/*.js": {
+      "runtime": "@vercel/node@latest"
+    }
+  },
   "routes": [
     {
       "src": "^/t/[^/]+$",
       "dest": "/index.html"
     },
     {
-      "src": "^/api/project/([^/]+)$",
-      "dest": "/api/project/[id].js?id=$1"
+      "src": "/api/project/([^/]+)",
+      "dest": "/api/project/[id].js?id=$1",
+      "methods": ["GET"]
     },
     {
       "src": "^/script\\.js$",
