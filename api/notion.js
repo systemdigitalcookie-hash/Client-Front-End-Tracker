@@ -1,20 +1,21 @@
-// --- DEBUGGING AT THE TOP LEVEL ---
-console.log('--- API MODULE LOADED ---');
-console.log('Is NOTION_API_KEY available on load:', !!process.env.NOTION_API_KEY);
-// ------------------------------------
-
 const { Client } = require('@notionhq/client');
 
-// This line will cause the crash if the API key is missing.
-const notion = new Client({ auth: process.env.NOTION_API_KEY });
+// --- ROBUST ENVIRONMENT VARIABLE CHECKS ---
+const notionApiKey = process.env.NOTION_API_KEY;
+const notionDatabaseId = process.env.NOTION_DATABASE_ID;
+
+// If either key is missing, stop everything and throw a clear error.
+if (!notionApiKey || !notionDatabaseId) {
+  throw new Error("FATAL: Missing NOTION_API_KEY or NOTION_DATABASE_ID in Vercel environment variables. Please check project settings.");
+}
+
+// Initialize the client ONLY if the keys exist.
+const notion = new Client({ auth: notionApiKey });
 
 module.exports = async (req, res) => {
-  // We can remove the previous logs from here as they are now at the top.
   try {
-    const databaseId = process.env.NOTION_DATABASE_ID;
-
     const response = await notion.databases.query({
-      database_id: databaseId,
+      database_id: notionDatabaseId,
       sorts: [
         {
           property: 'Created time',
@@ -45,8 +46,10 @@ module.exports = async (req, res) => {
     res.status(200).json(cleanData);
 
   } catch (error) {
-    console.error('--- ERROR CAUGHT INSIDE HANDLER ---');
-    console.error(error);
-    res.status(500).json({ error: 'Failed to fetch data from Notion. Check Vercel logs.' });
+    console.error("--- ERROR CAUGHT INSIDE HANDLER ---", error.message);
+    res.status(500).json({ 
+      message: "An error occurred while fetching from Notion.",
+      error: error.message 
+    });
   }
 };
