@@ -1,9 +1,11 @@
-document.addEventListener('DOMContentLoaded', async function () {
-
-  // Get the path from the URL, e.g., "/t/12345-abcde"
-  const path = window.location.pathname.split('/');
-  // Get the last part of the path, which is our unique ID
-  const projectId = path[path.length - 1];
+async function initializeTracker() {
+  try {
+    // Get the path from the URL, e.g., "/t/12345-abcde"
+    const path = window.location.pathname.split('/');
+    console.log('Current path:', path);
+    
+    // Get the last part of the path, which is our unique ID
+    const projectId = path[path.length - 1];
 
   // If there's no ID, show an error.
   if (!projectId || path[1] !== 't') {
