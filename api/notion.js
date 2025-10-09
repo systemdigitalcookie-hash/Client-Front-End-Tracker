@@ -1,12 +1,15 @@
+// --- DEBUGGING AT THE TOP LEVEL ---
+console.log('--- API MODULE LOADED ---');
+console.log('Is NOTION_API_KEY available on load:', !!process.env.NOTION_API_KEY);
+// ------------------------------------
+
 const { Client } = require('@notionhq/client');
+
+// This line will cause the crash if the API key is missing.
 const notion = new Client({ auth: process.env.NOTION_API_KEY });
 
 module.exports = async (req, res) => {
-  // --- THESE ARE THE CRUCIAL DEBUGGING LINES ---
-  console.log('Is NOTION_API_KEY available:', !!process.env.NOTION_API_KEY);
-  console.log('Is NOTION_DATABASE_ID available:', !!process.env.NOTION_DATABASE_ID);
-  // --------------------------------------------
-
+  // We can remove the previous logs from here as they are now at the top.
   try {
     const databaseId = process.env.NOTION_DATABASE_ID;
 
@@ -42,7 +45,7 @@ module.exports = async (req, res) => {
     res.status(200).json(cleanData);
 
   } catch (error) {
-    console.error('--- ERROR CAUGHT ---');
+    console.error('--- ERROR CAUGHT INSIDE HANDLER ---');
     console.error(error);
     res.status(500).json({ error: 'Failed to fetch data from Notion. Check Vercel logs.' });
   }
