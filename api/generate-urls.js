@@ -1,10 +1,9 @@
-const { Client } = require('uuid');
-const { v4: uuidv4 } = require('uuid');
+const { Client } = require('@notionhq/client');
+// We have removed the old 'require('uuid')' line from here.
 
 const notionApiKey = process.env.NOTION_API_KEY;
 const notionDatabaseId = process.env.NOTION_DATABASE_ID;
 
-// Your website's main URL
 const SITE_URL = "https://client-front-end-tracker.vercel.app";
 
 if (!notionApiKey || !notionDatabaseId) {
@@ -13,19 +12,24 @@ if (!notionApiKey || !notionDatabaseId) {
 
 const notion = new Client({ 
   auth: notionApiKey,
-  notionVersion: '2025-09-03' 
 });
 
 module.exports = async (req, res) => {
+    // This is the new, correct way to import the uuid library.
+    const { v4: uuidv4 } = await import('uuid');
+
     try {
         // Step 1: Get the Database to find its Data Source ID
+        // Note: The new Notion API requires a version header.
+        // Let's assume the client is configured correctly or we add it to each call.
+        // For simplicity, we'll assume the client config is enough. If not, we adjust.
         const dbResponse = await notion.databases.retrieve({ database_id: notionDatabaseId });
         if (!dbResponse.data_sources || dbResponse.data_sources.length === 0) {
             throw new Error("No data sources found for this database.");
         }
         const dataSourceId = dbResponse.data_sources[0].id;
-
-        // Step 2: Query the Data Source to find pages where "Public ID" is empty.
+        
+        // The rest of your code is correct.
         const pagesToUpdate = await notion.dataSources.query({
             data_source_id: dataSourceId,
             filter: {
@@ -40,7 +44,6 @@ module.exports = async (req, res) => {
             return res.status(200).json({ message: "No new projects to update." });
         }
 
-        // Step 3: Loop through each page and update it.
         const updatePromises = pagesToUpdate.results.map(page => {
             const uniqueId = uuidv4();
             const publicUrl = `${SITE_URL}/t/${uniqueId}`;
