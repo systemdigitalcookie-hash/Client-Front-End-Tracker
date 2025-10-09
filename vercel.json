@@ -1,5 +1,8 @@
 {
   "rewrites": [
-    { "source": "/t/:id", "destination": "/index.html" }
+    {
+      "source": "/((?!api/|style.css|script.js).*)",
+      "destination": "/index.html"
+    }
   ]
 }
