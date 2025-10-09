@@ -2,15 +2,14 @@ const { Client } = require('@notionhq/client');
 const notion = new Client({ auth: process.env.NOTION_API_KEY });
 
 module.exports = async (req, res) => {
-  // --- ADD THESE TWO DEBUGGING LINES ---
+  // --- THESE ARE THE CRUCIAL DEBUGGING LINES ---
   console.log('Is NOTION_API_KEY available:', !!process.env.NOTION_API_KEY);
   console.log('Is NOTION_DATABASE_ID available:', !!process.env.NOTION_DATABASE_ID);
-  // ------------------------------------
+  // --------------------------------------------
 
   try {
     const databaseId = process.env.NOTION_DATABASE_ID;
 
-    // The rest of your function code remains the same...
     const response = await notion.databases.query({
       database_id: databaseId,
       sorts: [
@@ -21,9 +20,6 @@ module.exports = async (req, res) => {
       ],
       page_size: 1,
     });
-
-    // ...etc.
-    // (The rest of the file is unchanged)
     
     if (response.results.length === 0) {
       return res.status(404).json({ error: 'No items found in the database.' });
@@ -46,7 +42,8 @@ module.exports = async (req, res) => {
     res.status(200).json(cleanData);
 
   } catch (error) {
+    console.error('--- ERROR CAUGHT ---');
     console.error(error);
-    res.status(500).json({ error: 'Failed to fetch data from Notion.' });
+    res.status(500).json({ error: 'Failed to fetch data from Notion. Check Vercel logs.' });
   }
 };
