@@ -1,9 +1,16 @@
 const { Client } = require('@notionhq/client');
 
-// ... (copy the notionApiKey, notionDatabaseId, and notion client initialization from the other API file) ...
 const notionApiKey = process.env.NOTION_API_KEY;
 const notionDatabaseId = process.env.NOTION_DATABASE_ID;
-const notion = new Client({ auth: notionApiKey });
+
+if (!notionApiKey || !notionDatabaseId) {
+    throw new Error('Missing required environment variables NOTION_API_KEY or NOTION_DATABASE_ID');
+}
+
+const notion = new Client({ 
+    auth: notionApiKey,
+    notionVersion: '2022-06-28'  // Explicitly set Notion API version
+});
 
 
 module.exports = async (req, res) => {

@@ -1,8 +1,18 @@
 {
   "rewrites": [
     {
-      "source": "/((?!api/|style.css|script.js).*)",
+      "source": "/t/:id",
       "destination": "/index.html"
+    },
+    {
+      "source": "/api/project/:id",
+      "destination": "/api/project/[id].js"
     }
-  ]
+  ],
+  "functions": {
+    "api/project/[id].js": {
+      "memory": 1024,
+      "maxDuration": 10
+    }
+  }
 }

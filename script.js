@@ -14,16 +14,31 @@ document.addEventListener('DOMContentLoaded', async function () {
   try {
     console.log('Fetching project data for ID:', projectId);
     // Call our new dynamic API endpoint
-    const response = await fetch(`/api/project/${projectId}`);
+    const response = await fetch(`/api/project/${projectId}`, {
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    
+    // Log the raw response for debugging
     console.log('Response status:', response.status);
+    const responseText = await response.text();
+    console.log('Raw response:', responseText);
+    
+    // Try to parse as JSON
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch (e) {
+      console.error('Failed to parse JSON:', e);
+      throw new Error('Invalid response from server');
+    }
     
     if (!response.ok) {
-      const error = await response.json();
-      console.error('API Error:', error);
-      throw new Error(error.message || 'Failed to fetch project data');
+      console.error('API Error:', responseData);
+      throw new Error(responseData.message || 'Failed to fetch project data');
     }
 
-    const responseData = await response.json();
     console.log('API Response:', responseData);
     const { projectData, workflowStages, comments } = responseData;
     
