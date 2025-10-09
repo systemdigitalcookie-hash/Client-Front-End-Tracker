@@ -1,7 +1,19 @@
 document.addEventListener('DOMContentLoaded', async function () {
+
+  // --- DEFINE YOUR WORKFLOW ---
+  // List all your Notion status options here in the exact order you want them to appear.
+  const workflowStages = [
+    "Onboarding",
+    "Discovery & Strategy",
+    "Design",
+    "Development",
+    "Client Review",
+    "Launch",
+    "Completed"
+  ];
+  // -----------------------------
   
   try {
-    // This now calls our renamed serverless function.
     const response = await fetch('/api/notion');
     const projectData = await response.json();
 
@@ -12,7 +24,8 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
 
     renderProjectInfo(projectData);
-    renderStaticProgressBar(projectData.status); 
+    // We now pass the full workflow and the current status to the render function.
+    renderProgressBar(workflowStages, projectData.status); 
     renderStaticTimeline(projectData);
 
   } catch (error) {
@@ -21,7 +34,30 @@ document.addEventListener('DOMContentLoaded', async function () {
   }
 });
 
-// --- RENDER FUNCTIONS --- (These are all unchanged)
+
+// This function is now fully dynamic.
+function renderProgressBar(stages, currentStatus) {
+    const bar = document.getElementById('progress-bar');
+    bar.innerHTML = '';
+    const currentStageIndex = stages.indexOf(currentStatus);
+
+    stages.forEach((stage, index) => {
+        const step = document.createElement('div');
+        step.classList.add('step');
+        // If the step's index is before the current one, it's 'completed'.
+        if (index < currentStageIndex) {
+            step.classList.add('completed');
+        // If it's the current step, it's 'active'.
+        } else if (index === currentStageIndex) {
+            step.classList.add('active');
+        }
+        step.innerHTML = `<div class="step-icon">${index < currentStageIndex ? '✓' : ''}</div><div class="step-label">${stage}</div>`;
+        bar.appendChild(step);
+    });
+}
+
+
+// --- Other Render Functions (unchanged) ---
 
 function renderProjectInfo(data) {
     const infoSection = document.getElementById('project-info');
@@ -33,25 +69,6 @@ function renderProjectInfo(data) {
         <p><strong>Timeline Start:</strong> ${data.timeline ? new Date(data.timeline).toLocaleDateString() : 'Not set'}</p>
         <p><strong>Documents:</strong> ${data.documentCount} file(s) uploaded</p>
     `;
-}
-
-function renderStaticProgressBar(currentStatus) {
-    const stages = ["Onboarding", "In Progress", "Client Review", "Completed"];
-    const bar = document.getElementById('progress-bar');
-    bar.innerHTML = '';
-    const currentStageIndex = stages.indexOf(currentStatus);
-
-    stages.forEach((stage, index) => {
-        const step = document.createElement('div');
-        step.classList.add('step');
-        if (index < currentStageIndex) {
-            step.classList.add('completed');
-        } else if (index === currentStageIndex) {
-            step.classList.add('active');
-        }
-        step.innerHTML = `<div class="step-icon">${index < currentStageIndex ? '✓' : ''}</div><div class="step-label">${stage}</div>`;
-        bar.appendChild(step);
-    });
 }
 
 function renderStaticTimeline(data) {
